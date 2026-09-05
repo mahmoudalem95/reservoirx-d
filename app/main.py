@@ -158,6 +158,7 @@ def index() -> dict:
             f"{API_PREFIX}/evaluate",
             f"{API_PREFIX}/optimize",
             f"{API_PREFIX}/compare",
+            f"{API_PREFIX}/analyze",
             f"{API_PREFIX}/claims",
             f"{API_PREFIX}/tasks",
             f"{API_PREFIX}/version",
