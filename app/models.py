@@ -228,15 +228,20 @@ class OptimizeRequest(StrictModel):
     weight_distribution: WeightDistribution = "uniform"
     target_metric: TaskName = "memory_capacity"
     ratios: list[float] | None = Field(
-        None, description="Width ratios to test; defaults to 1.0 down to 0.5 in steps of 0.1"
+        None, description="Width ratios to test. Defaults to [1.0, 0.8, 0.6] to keep a bodyless "
+        "call fast; pass [1.0, 0.9, 0.8, 0.7, 0.6, 0.5] for a full sweep."
     )
     min_acceptable_ratio: float = Field(0.5, gt=0.05, le=1.0)
     non_inferiority_margin_fraction: float = Field(
         0.02, gt=0, le=0.5, description="A ratio passes if its CI lower bound sits above this "
         "fraction of the baseline score, measured downwards"
     )
-    selection_seeds: int = Field(8, ge=2, le=settings.max_iterations)
-    confirmation_seeds: int = Field(4, ge=2, le=settings.max_iterations)
+    # Defaults are demo-sized, not research-sized. A bodyless POST has to finish
+    # inside an API gateway timeout (RapidAPI cuts at 180s) on a shared-CPU host,
+    # and the full protocol is ~56 simulations. For real work raise these: 8+ and
+    # 4+ seeds, and see the note on max_lag in evaluation_params.
+    selection_seeds: int = Field(4, ge=2, le=settings.max_iterations)
+    confirmation_seeds: int = Field(2, ge=2, le=settings.max_iterations)
     base_seed: int = Field(0, ge=0, le=2**31 - 1)
     evaluation_params: EvaluationParams = EvaluationParams()
 
@@ -261,8 +266,9 @@ class OptimizeRequest(StrictModel):
                 "mean_degree": 3,
                 "target_metric": "memory_capacity",
                 "min_acceptable_ratio": 0.5,
-                "selection_seeds": 8,
-                "confirmation_seeds": 4,
+                "selection_seeds": 4,
+                "confirmation_seeds": 2,
+                "ratios": [1.0, 0.8, 0.6],
                 # max_lag matters: at the default of 20 a 200-node reservoir sits at
                 # its ceiling and every width passes non-inferiority trivially.
                 "evaluation_params": {"sequence_length": 4000, "max_lag": 120},
@@ -296,7 +302,11 @@ class CompareRequest(StrictModel):
     mean_degree: float = Field(3.0, gt=0)
     spectral_radius: float = Field(0.9, gt=0, le=5.0)
     weight_distribution: WeightDistribution = "uniform"
-    iterations: int = Field(8, ge=3, le=settings.max_iterations)
+    # 4 is a demo default, not a statistical one: with n pairs the smallest
+    # attainable permutation p-value is ~2/2^n, so 4 seeds bottom out at 0.125
+    # and NOTHING can reach significance. Use 8 to detect an effect at all and
+    # 16 for resolution below the floor. The response warns when you are there.
+    iterations: int = Field(4, ge=3, le=settings.max_iterations)
     tasks: list[TaskName] = ["memory_capacity"]
     treatment_scheme: WiringScheme = "degree_regular"
     baseline_scheme: WiringScheme = "skewed"
@@ -326,7 +336,7 @@ class CompareRequest(StrictModel):
             "example": {
                 "node_count": 200,
                 "mean_degree": 3,
-                "iterations": 16,
+                "iterations": 8,
                 "tasks": ["memory_capacity", "delay_parity", "delay_xor", "narma10"],
                 "include_symmetrization_control": True,
                 "evaluation_params": {"sequence_length": 4000, "max_lag": 120},

@@ -1,8 +1,11 @@
 # Render blueprint. Point render.com at this repo and it configures itself.
 #
 # Free tier notes:
-#   * 512 MB RAM. Enough for the default caps; a /compare at node_count=2000
-#     would not be, so RXD_MAX_NODE_COUNT is lowered here.
+#   * 0.1 CPU and 512 MB RAM. The CPU share is the binding constraint: work that
+#     takes 2s locally can take over 100s here, and an API gateway in front
+#     (RapidAPI cuts at 180s) will time out before a full-size /compare or
+#     /optimize finishes. Defaults are demo-sized for that reason. Research runs
+#     want a paid instance or a direct call to your own host.
 #   * The instance sleeps after 15 minutes idle and takes ~30s to wake. The
 #     Python client's 300s default timeout absorbs that, but a monitoring test
 #     with a short timeout will see the cold start as a failure.

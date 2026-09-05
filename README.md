@@ -219,6 +219,16 @@ don't mix seeds from the two in one paired test.
 
 ## Changelog
 
+### 1.4.1
+
+- `/optimize` and `/compare` defaults are now demo-sized so a bodyless call finishes inside an
+  API gateway timeout. A default `/optimize` was ~56 simulations; on a shared-CPU host behind
+  RapidAPI's 180s limit that returned 504.
+- **These defaults are not research settings.** `compare` now defaults to 4 seeds, where the
+  permutation floor is 0.125 and nothing can reach significance. Use 8 to detect an effect and
+  16 for resolution below the floor — the response warns you when you are at the floor.
+- `optimize` defaults to 3 ratios rather than 6; pass `ratios` explicitly for a full sweep.
+
 ### 1.4.0
 
 - `/generate`, `/optimize` and `/compare` now accept a POST with no body and run their documented
