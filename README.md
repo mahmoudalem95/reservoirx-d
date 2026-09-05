@@ -219,6 +219,20 @@ don't mix seeds from the two in one paired test.
 
 ## Changelog
 
+### 1.4.0
+
+- `/generate`, `/optimize` and `/compare` now accept a POST with no body and run their documented
+  default configuration. Every field on those models already had a default, so a missing body was
+  unambiguous — but FastAPI rejected it outright with 422 "Field required". API-hub consoles send
+  empty bodies routinely, and that single behaviour accounted for most of a 66% production error
+  rate. `/diagnose` and `/evaluate` still require a body: they need a matrix, and analysing a
+  default one silently would be worse than an error.
+- `scripts/export_openapi.py` now inlines each request example into `requestBody.content` as well
+  as leaving it on the component schema. FastAPI puts it behind a `$ref` and not every console
+  follows the ref to find it.
+- Added a regression test tying the endpoint list at `/` to the routed paths, after `/analyze`
+  was routed and documented but missing from the hardcoded index.
+
 ### 1.3.1
 
 - Fixed: every POST endpoint except `/generate` returned 422 "Field required" when called from

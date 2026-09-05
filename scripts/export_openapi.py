@@ -60,7 +60,34 @@ def downgrade_to_30(schema: dict) -> dict:
     return out
 
 
-schema = app.openapi()
+def inline_request_examples(schema: dict) -> dict:
+    """
+    Copy each model's example up into its requestBody.
+
+    FastAPI puts the example on the component schema and points the requestBody
+    at it with a $ref. Some API-hub consoles do not follow the ref to find it,
+    so they render an empty body and every POST comes back 422 "Field required".
+    Duplicating the example directly under requestBody.content covers both
+    conventions; it is redundant, not wrong.
+    """
+    components = schema.get("components", {}).get("schemas", {})
+    for item in schema.get("paths", {}).values():
+        for method in ("post", "put", "patch"):
+            operation = item.get(method)
+            if not operation:
+                continue
+            content = operation.get("requestBody", {}).get("content", {}).get("application/json")
+            if not content:
+                continue
+            ref = content.get("schema", {}).get("$ref", "")
+            example = components.get(ref.split("/")[-1], {}).get("example")
+            if example is not None and "example" not in content:
+                content["example"] = example
+                content["examples"] = {"default": {"summary": "Example request", "value": example}}
+    return schema
+
+
+schema = inline_request_examples(app.openapi())
 (ROOT / "openapi.json").write_text(json.dumps(schema, indent=2))
 (ROOT / "openapi-3.0.json").write_text(json.dumps(downgrade_to_30(schema), indent=2))
 

@@ -10,11 +10,11 @@
     "license": {
       "name": "MIT"
     },
-    "version": "1.3.0"
+    "version": "1.3.1"
   },
   "servers": [
     {
-      "url": "https://treasures-advertisements-parliamentary-donors.trycloudflare.com",
+      "url": "https://reservoirx-d.onrender.com",
       "description": "Configured deployment (RXD_PUBLIC_URL)"
     },
     {
@@ -80,6 +80,27 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/GenerateRequest"
+              },
+              "example": {
+                "mean_degree": 3,
+                "node_count": 200,
+                "seed": 42,
+                "spectral_radius": 0.9,
+                "weight_distribution": "uniform",
+                "wiring_scheme": "degree_regular"
+              },
+              "examples": {
+                "default": {
+                  "summary": "Example request",
+                  "value": {
+                    "mean_degree": 3,
+                    "node_count": 200,
+                    "seed": 42,
+                    "spectral_radius": 0.9,
+                    "weight_distribution": "uniform",
+                    "wiring_scheme": "degree_regular"
+                  }
+                }
               }
             }
           },
@@ -122,6 +143,29 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DiagnoseRequest"
+              },
+              "example": {
+                "iterations": 100,
+                "matrix_id": "rxd_replace_with_an_id_from_generate",
+                "null_models": [
+                  "erdos_renyi",
+                  "degree_preserving"
+                ],
+                "seed": 0
+              },
+              "examples": {
+                "default": {
+                  "summary": "Example request",
+                  "value": {
+                    "iterations": 100,
+                    "matrix_id": "rxd_replace_with_an_id_from_generate",
+                    "null_models": [
+                      "erdos_renyi",
+                      "degree_preserving"
+                    ],
+                    "seed": 0
+                  }
+                }
               }
             }
           },
@@ -164,6 +208,29 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EvaluateRequest"
+              },
+              "example": {
+                "evaluation_params": {
+                  "max_lag": 60,
+                  "sequence_length": 3000
+                },
+                "matrix_id": "rxd_replace_with_an_id_from_generate",
+                "seed": 0,
+                "task": "memory_capacity"
+              },
+              "examples": {
+                "default": {
+                  "summary": "Example request",
+                  "value": {
+                    "evaluation_params": {
+                      "max_lag": 60,
+                      "sequence_length": 3000
+                    },
+                    "matrix_id": "rxd_replace_with_an_id_from_generate",
+                    "seed": 0,
+                    "task": "memory_capacity"
+                  }
+                }
               }
             }
           },
@@ -206,6 +273,35 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/OptimizeRequest"
+              },
+              "example": {
+                "base_nodes": 200,
+                "confirmation_seeds": 4,
+                "evaluation_params": {
+                  "max_lag": 120,
+                  "sequence_length": 4000
+                },
+                "mean_degree": 3,
+                "min_acceptable_ratio": 0.5,
+                "selection_seeds": 8,
+                "target_metric": "memory_capacity"
+              },
+              "examples": {
+                "default": {
+                  "summary": "Example request",
+                  "value": {
+                    "base_nodes": 200,
+                    "confirmation_seeds": 4,
+                    "evaluation_params": {
+                      "max_lag": 120,
+                      "sequence_length": 4000
+                    },
+                    "mean_degree": 3,
+                    "min_acceptable_ratio": 0.5,
+                    "selection_seeds": 8,
+                    "target_metric": "memory_capacity"
+                  }
+                }
               }
             }
           },
@@ -248,6 +344,43 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CompareRequest"
+              },
+              "example": {
+                "evaluation_params": {
+                  "max_lag": 120,
+                  "sequence_length": 4000
+                },
+                "include_symmetrization_control": true,
+                "iterations": 16,
+                "mean_degree": 3,
+                "node_count": 200,
+                "tasks": [
+                  "memory_capacity",
+                  "delay_parity",
+                  "delay_xor",
+                  "narma10"
+                ]
+              },
+              "examples": {
+                "default": {
+                  "summary": "Example request",
+                  "value": {
+                    "evaluation_params": {
+                      "max_lag": 120,
+                      "sequence_length": 4000
+                    },
+                    "include_symmetrization_control": true,
+                    "iterations": 16,
+                    "mean_degree": 3,
+                    "node_count": 200,
+                    "tasks": [
+                      "memory_capacity",
+                      "delay_parity",
+                      "delay_xor",
+                      "narma10"
+                    ]
+                  }
+                }
               }
             }
           },
@@ -290,6 +423,123 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AnalyzeRequest"
+              },
+              "example": {
+                "architecture": "sparse_cnn_cifar10",
+                "ceiling": 100.0,
+                "higher_is_better": true,
+                "metric_name": "test_accuracy_pct",
+                "results": [
+                  {
+                    "baseline": 62.87,
+                    "seed": 0,
+                    "task": "ratio_100",
+                    "treatment": 63.55
+                  },
+                  {
+                    "baseline": 63.19,
+                    "seed": 1,
+                    "task": "ratio_100",
+                    "treatment": 63.77
+                  },
+                  {
+                    "baseline": 62.24,
+                    "seed": 2,
+                    "task": "ratio_100",
+                    "treatment": 62.93
+                  },
+                  {
+                    "baseline": 62.0,
+                    "seed": 3,
+                    "task": "ratio_100",
+                    "treatment": 62.62
+                  },
+                  {
+                    "baseline": 62.64,
+                    "seed": 4,
+                    "task": "ratio_100",
+                    "treatment": 63.39
+                  },
+                  {
+                    "baseline": 61.76,
+                    "seed": 5,
+                    "task": "ratio_100",
+                    "treatment": 62.31
+                  },
+                  {
+                    "baseline": 62.92,
+                    "seed": 6,
+                    "task": "ratio_100",
+                    "treatment": 63.66
+                  },
+                  {
+                    "baseline": 62.39,
+                    "seed": 7,
+                    "task": "ratio_100",
+                    "treatment": 63.07
+                  }
+                ]
+              },
+              "examples": {
+                "default": {
+                  "summary": "Example request",
+                  "value": {
+                    "architecture": "sparse_cnn_cifar10",
+                    "ceiling": 100.0,
+                    "higher_is_better": true,
+                    "metric_name": "test_accuracy_pct",
+                    "results": [
+                      {
+                        "baseline": 62.87,
+                        "seed": 0,
+                        "task": "ratio_100",
+                        "treatment": 63.55
+                      },
+                      {
+                        "baseline": 63.19,
+                        "seed": 1,
+                        "task": "ratio_100",
+                        "treatment": 63.77
+                      },
+                      {
+                        "baseline": 62.24,
+                        "seed": 2,
+                        "task": "ratio_100",
+                        "treatment": 62.93
+                      },
+                      {
+                        "baseline": 62.0,
+                        "seed": 3,
+                        "task": "ratio_100",
+                        "treatment": 62.62
+                      },
+                      {
+                        "baseline": 62.64,
+                        "seed": 4,
+                        "task": "ratio_100",
+                        "treatment": 63.39
+                      },
+                      {
+                        "baseline": 61.76,
+                        "seed": 5,
+                        "task": "ratio_100",
+                        "treatment": 62.31
+                      },
+                      {
+                        "baseline": 62.92,
+                        "seed": 6,
+                        "task": "ratio_100",
+                        "treatment": 63.66
+                      },
+                      {
+                        "baseline": 62.39,
+                        "seed": 7,
+                        "task": "ratio_100",
+                        "treatment": 63.07
+                      }
+                    ]
+                  }
+                }
               }
             }
           },
@@ -485,7 +735,63 @@
           "architecture",
           "results"
         ],
-        "title": "AnalyzeRequest"
+        "title": "AnalyzeRequest",
+        "example": {
+          "architecture": "sparse_cnn_cifar10",
+          "ceiling": 100.0,
+          "higher_is_better": true,
+          "metric_name": "test_accuracy_pct",
+          "results": [
+            {
+              "baseline": 62.87,
+              "seed": 0,
+              "task": "ratio_100",
+              "treatment": 63.55
+            },
+            {
+              "baseline": 63.19,
+              "seed": 1,
+              "task": "ratio_100",
+              "treatment": 63.77
+            },
+            {
+              "baseline": 62.24,
+              "seed": 2,
+              "task": "ratio_100",
+              "treatment": 62.93
+            },
+            {
+              "baseline": 62.0,
+              "seed": 3,
+              "task": "ratio_100",
+              "treatment": 62.62
+            },
+            {
+              "baseline": 62.64,
+              "seed": 4,
+              "task": "ratio_100",
+              "treatment": 63.39
+            },
+            {
+              "baseline": 61.76,
+              "seed": 5,
+              "task": "ratio_100",
+              "treatment": 62.31
+            },
+            {
+              "baseline": 62.92,
+              "seed": 6,
+              "task": "ratio_100",
+              "treatment": 63.66
+            },
+            {
+              "baseline": 62.39,
+              "seed": 7,
+              "task": "ratio_100",
+              "treatment": 63.07
+            }
+          ]
+        }
       },
       "AnalyzeResponse": {
         "properties": {
@@ -674,7 +980,23 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "CompareRequest"
+        "title": "CompareRequest",
+        "example": {
+          "evaluation_params": {
+            "max_lag": 120,
+            "sequence_length": 4000
+          },
+          "include_symmetrization_control": true,
+          "iterations": 16,
+          "mean_degree": 3,
+          "node_count": 200,
+          "tasks": [
+            "memory_capacity",
+            "delay_parity",
+            "delay_xor",
+            "narma10"
+          ]
+        }
       },
       "CompareResponse": {
         "properties": {
@@ -766,7 +1088,16 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "DiagnoseRequest"
+        "title": "DiagnoseRequest",
+        "example": {
+          "iterations": 100,
+          "matrix_id": "rxd_replace_with_an_id_from_generate",
+          "null_models": [
+            "erdos_renyi",
+            "degree_preserving"
+          ],
+          "seed": 0
+        }
       },
       "DiagnoseResponse": {
         "properties": {
@@ -869,7 +1200,16 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "EvaluateRequest"
+        "title": "EvaluateRequest",
+        "example": {
+          "evaluation_params": {
+            "max_lag": 60,
+            "sequence_length": 3000
+          },
+          "matrix_id": "rxd_replace_with_an_id_from_generate",
+          "seed": 0,
+          "task": "memory_capacity"
+        }
       },
       "EvaluateResponse": {
         "properties": {
@@ -1347,7 +1687,19 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "OptimizeRequest"
+        "title": "OptimizeRequest",
+        "example": {
+          "base_nodes": 200,
+          "confirmation_seeds": 4,
+          "evaluation_params": {
+            "max_lag": 120,
+            "sequence_length": 4000
+          },
+          "mean_degree": 3,
+          "min_acceptable_ratio": 0.5,
+          "selection_seeds": 8,
+          "target_metric": "memory_capacity"
+        }
       },
       "OptimizeResponse": {
         "properties": {

@@ -567,3 +567,32 @@ def test_published_examples_are_actually_valid(client):
         r = client.post(path, json=example)
         # 404 is fine: the matrix_id placeholders are not real ids.
         assert r.status_code in (200, 404), f"{path} rejected its own example: {r.text[:200]}"
+
+
+def test_index_lists_every_versioned_endpoint(client):
+    """
+    Regression: /analyze was routed and in the schema but missing from the
+    hardcoded list at /, so the index under-reported the API. This asserts the
+    two can never drift again.
+    """
+    listed = set(client.get("/").json()["endpoints"])
+    routed = {p for p in client.get("/openapi.json").json()["paths"] if p.startswith("/v1/")}
+    assert listed == routed, f"index/schema mismatch: {listed ^ routed}"
+
+
+def test_bodyless_post_runs_the_default_configuration(client):
+    """
+    API-hub consoles send an empty body. Endpoints whose fields all have
+    defaults must treat that as the default request rather than 422-ing --
+    that single behaviour was most of a 66% production error rate.
+    """
+    for path in ("/generate", "/optimize", "/compare"):
+        r = client.post(f"/v1/reservoirx-d{path}", content=b"")
+        assert r.status_code == 200, f"{path} rejected an empty body: {r.text[:200]}"
+
+
+def test_endpoints_needing_a_matrix_still_require_a_body(client):
+    """The flip side: don't silently invent a matrix nobody asked to analyse."""
+    for path in ("/diagnose", "/evaluate"):
+        r = client.post(f"/v1/reservoirx-d{path}", content=b"")
+        assert r.status_code == 422

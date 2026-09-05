@@ -4,6 +4,13 @@ ReservoirX-D v1 endpoints.
 Handlers are defined with `def`, not `async def`, on purpose: every one of them
 is CPU-bound NumPy work, so FastAPI runs them in the threadpool instead of
 blocking the event loop.
+
+Endpoints whose fields all have defaults also default the whole request body, so
+a POST with no body runs the documented default configuration rather than
+returning 422 "Field required". API-hub consoles routinely send an empty body,
+and a 422 there reads as a broken API rather than a missing field. /diagnose and
+/evaluate still require a body: they need a matrix, and silently analysing a
+default one would be worse than an error.
 """
 
 from __future__ import annotations
@@ -102,7 +109,9 @@ def _as_generated(
 
 
 @router.post("/generate", response_model=GenerateResponse, summary="Generate a reservoir matrix")
-def generate(req: GenerateRequest, store: MatrixStore = Depends(get_store)) -> GenerateResponse:
+def generate(
+    req: GenerateRequest = GenerateRequest(), store: MatrixStore = Depends(get_store)
+) -> GenerateResponse:
     """
     Generate a directed reservoir with an exact degree sequence and a rescaled
     spectral radius.
@@ -283,7 +292,7 @@ def evaluate(req: EvaluateRequest, store: MatrixStore = Depends(get_store)) -> E
 
 
 @router.post("/optimize", response_model=OptimizeResponse, summary="Find the smallest viable width")
-def optimize(req: OptimizeRequest) -> OptimizeResponse:
+def optimize(req: OptimizeRequest = OptimizeRequest()) -> OptimizeResponse:
     """
     Search for the smallest width that stays non-inferior to full width.
 
@@ -313,7 +322,7 @@ def optimize(req: OptimizeRequest) -> OptimizeResponse:
 
 
 @router.post("/compare", response_model=CompareResponse, summary="Test regular against skewed")
-def compare(req: CompareRequest) -> CompareResponse:
+def compare(req: CompareRequest = CompareRequest()) -> CompareResponse:
     """
     Paired regular-vs-skewed comparison on your configuration.
 
