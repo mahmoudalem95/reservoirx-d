@@ -1,0 +1,1496 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ReservoirX-D",
+    "description": "\nGenerate directed, degree-regular reservoir weight matrices, then **test** whether\nthat wiring actually helps on your configuration.\n\n### What this service does differently\n\nMost of the published support for regular-degree connectivity is architecture-specific,\nand some of it was never independently reproduced. Rather than shipping those results as\nproduct claims, ReservoirX-D exposes the experiment:\n\n* `POST /compare` runs the regular-vs-skewed comparison on your parameters, paired by\n  seed, matched on edge budget, Holm-corrected across tasks.\n* `POST /optimize` selects a width on one set of seeds and confirms it on another, and\n  reports connection savings it actually counted.\n* `GET /claims` returns the provenance and evidential status of every claim behind the\n  service, including the two that come from an external pipeline that was not reproduced.\n\n### Construction\n\nNetworkX has no directed analogue of `random_regular_graph`, and the obvious substitute\n(`random_regular_graph(...).to_directed()`) yields a symmetric matrix, destroying exactly\nthe directedness this service depends on. Graphs here are built by configuration-model\nstub pairing followed by directed double-edge swaps, which repairs self-loops and parallel\nedges while preserving the degree sequence exactly.\n\n### Limits\n\nEvery endpoint is synchronous CPU work. `/compare` over 8 seeds and 4 tasks is 64\nreservoir simulations. Size your requests accordingly, or put them behind a queue.\n",
+    "contact": {
+      "name": "ReservoirX-D",
+      "url": "https://github.com/"
+    },
+    "license": {
+      "name": "MIT"
+    },
+    "version": "1.3.0"
+  },
+  "servers": [
+    {
+      "url": "https://treasures-advertisements-parliamentary-donors.trycloudflare.com",
+      "description": "Configured deployment (RXD_PUBLIC_URL)"
+    },
+    {
+      "url": "http://localhost:8080",
+      "description": "Local development"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Liveness and store state",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Service index",
+        "operationId": "index__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Index  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reservoirx-d/generate": {
+      "post": {
+        "tags": [
+          "generation"
+        ],
+        "summary": "Generate a reservoir matrix",
+        "description": "Generate a directed reservoir with an exact degree sequence and a rescaled\nspectral radius.\n\n`degree_regular` gives every node identical in- and out-degree. `near_regular`\naccepts a fractional mean degree. `skewed` and `erdos_renyi` are the contrast\nconditions, matched on edge budget.",
+        "operationId": "generate_v1_reservoirx_d_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reservoirx-d/diagnose": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Structural diagnostics",
+        "description": "Structural metrics plus null-model Z-scores and empirical p-values.\n\nNote what is deliberately absent: there is no `symmetrization_risk` field.\nEstimating a performance drop from a structural proxy such as Henrici\ndeparture would imply a calibration that does not exist -- the evidence for\nthe symmetrisation collapse is a single external experiment. Measure it\ninstead with `include_symmetrization_control` on /compare.",
+        "operationId": "diagnose_v1_reservoirx_d_diagnose_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiagnoseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnoseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reservoirx-d/evaluate": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Evaluate a reservoir on a task",
+        "description": "Drive the reservoir and fit a ridge readout on held-out data.\n\nStates are bounded by the tanh activation, so divergence is not a failure\nmode and there is no rejection sampling. The real risks -- saturation and\ncollapse -- are reported in `stability` and flagged in `warnings` rather\nthan silently worked around.",
+        "operationId": "evaluate_v1_reservoirx_d_evaluate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reservoirx-d/optimize": {
+      "post": {
+        "tags": [
+          "experiments"
+        ],
+        "summary": "Find the smallest viable width",
+        "description": "Search for the smallest width that stays non-inferior to full width.\n\nSelection runs on one set of seeds and confirmation on another, so the\nreported result is not scored on the data that chose it. Connection savings\nare counted from the generated graphs; no fixed shrink ratio is assumed.",
+        "operationId": "optimize_v1_reservoirx_d_optimize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptimizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptimizeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reservoirx-d/compare": {
+      "post": {
+        "tags": [
+          "experiments"
+        ],
+        "summary": "Test regular against skewed",
+        "description": "Paired regular-vs-skewed comparison on your configuration.\n\nConditions share seeds, edge budgets are reported, multiple tasks are\nHolm-corrected, and the symmetrisation control -- when enabled -- measures\nthe directedness hypothesis rather than assuming it.\n\nThis endpoint is the point of the service. The wiring effect is not treated\nas a given; it is the thing being tested.",
+        "operationId": "compare_v1_reservoirx_d_compare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompareResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reservoirx-d/analyze": {
+      "post": {
+        "tags": [
+          "experiments"
+        ],
+        "summary": "Apply the /compare protocol to results measured elsewhere",
+        "description": "Run the paired analysis on per-seed scores this service did not produce.\n\n/compare handles reservoirs, where a run is milliseconds. Architectures that\ntake hours per run -- the CIFAR sparse CNN, the MoE transformer -- have to\ntrain wherever the hardware is. Submit their per-seed scores here and they go\nthrough the identical protocol: paired Cohen's d, sign-flip permutation,\nbootstrap CIs, Holm correction across tasks, permutation-floor and ceiling\ndetection, and held-out confirmation.\n\nThe response says plainly that this service did not measure these numbers.",
+        "operationId": "analyze_v1_reservoirx_d_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyzeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reservoirx-d/claims": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Evidence behind every claim this service makes",
+        "description": "The provenance of the results ReservoirX-D is built on, with status codes.\n\nServed as an endpoint rather than buried in a README because two of the\nheadline claims come from an external pipeline that was never reproduced,\nand anyone building on this API should be able to see that programmatically.",
+        "operationId": "claims_v1_reservoirx_d_claims_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Claims V1 Reservoirx D Claims Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reservoirx-d/tasks": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Available benchmark tasks",
+        "operationId": "tasks_v1_reservoirx_d_tasks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Tasks V1 Reservoirx D Tasks Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reservoirx-d/version": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Service version",
+        "operationId": "version_v1_reservoirx_d_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Version V1 Reservoirx D Version Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalyzeRequest": {
+        "properties": {
+          "architecture": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Architecture",
+            "description": "e.g. 'sparse_cnn' or 'moe_hash_routing'"
+          },
+          "metric_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Metric Name",
+            "default": "score"
+          },
+          "higher_is_better": {
+            "type": "boolean",
+            "title": "Higher Is Better",
+            "default": true
+          },
+          "ceiling": {
+            "title": "Ceiling",
+            "description": "Theoretical maximum of the metric, if it has one (e.g. 100 for accuracy). Enables saturation detection.",
+            "nullable": true,
+            "type": "number"
+          },
+          "treatment_label": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Treatment Label",
+            "default": "regular"
+          },
+          "baseline_label": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Baseline Label",
+            "default": "skewed"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ResultRecord"
+            },
+            "type": "array",
+            "maxItems": 2000,
+            "minItems": 3,
+            "title": "Results"
+          },
+          "confirmation": {
+            "title": "Confirmation",
+            "description": "Held-out seeds, never used to choose what to report.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ResultRecord"
+            },
+            "type": "array",
+            "maxItems": 2000
+          },
+          "non_inferiority_margin_fraction": {
+            "title": "Non Inferiority Margin Fraction",
+            "nullable": true,
+            "type": "number",
+            "maximum": 0.5,
+            "minimum": 0.0,
+            "exclusiveMinimum": true
+          },
+          "alpha": {
+            "type": "number",
+            "title": "Alpha",
+            "default": 0.05,
+            "minimum": 0.0,
+            "exclusiveMinimum": true,
+            "maximum": 0.5,
+            "exclusiveMaximum": true
+          },
+          "seed": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Seed",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "architecture",
+          "results"
+        ],
+        "title": "AnalyzeRequest"
+      },
+      "AnalyzeResponse": {
+        "properties": {
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          },
+          "metric_name": {
+            "type": "string",
+            "title": "Metric Name"
+          },
+          "higher_is_better": {
+            "type": "boolean",
+            "title": "Higher Is Better"
+          },
+          "conditions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Conditions"
+          },
+          "per_task": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Per Task"
+          },
+          "multiple_comparison_correction": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Multiple Comparison Correction"
+          },
+          "confirmation": {
+            "title": "Confirmation",
+            "nullable": true,
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Summary"
+          },
+          "provenance": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Provenance"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "architecture",
+          "metric_name",
+          "higher_is_better",
+          "conditions",
+          "per_task",
+          "multiple_comparison_correction",
+          "confirmation",
+          "summary",
+          "provenance"
+        ],
+        "title": "AnalyzeResponse"
+      },
+      "CompareRequest": {
+        "properties": {
+          "node_count": {
+            "type": "integer",
+            "maximum": 2000.0,
+            "minimum": 10.0,
+            "title": "Node Count",
+            "default": 200
+          },
+          "mean_degree": {
+            "type": "number",
+            "title": "Mean Degree",
+            "default": 3.0,
+            "minimum": 0.0,
+            "exclusiveMinimum": true
+          },
+          "spectral_radius": {
+            "type": "number",
+            "maximum": 5.0,
+            "title": "Spectral Radius",
+            "default": 0.9,
+            "minimum": 0.0,
+            "exclusiveMinimum": true
+          },
+          "weight_distribution": {
+            "type": "string",
+            "enum": [
+              "uniform",
+              "normal",
+              "bimodal"
+            ],
+            "title": "Weight Distribution",
+            "default": "uniform"
+          },
+          "iterations": {
+            "type": "integer",
+            "maximum": 32.0,
+            "minimum": 3.0,
+            "title": "Iterations",
+            "default": 8
+          },
+          "tasks": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "memory_capacity",
+                "delay_parity",
+                "delay_xor",
+                "narma10"
+              ]
+            },
+            "type": "array",
+            "title": "Tasks",
+            "default": [
+              "memory_capacity"
+            ]
+          },
+          "treatment_scheme": {
+            "type": "string",
+            "enum": [
+              "degree_regular",
+              "near_regular",
+              "skewed",
+              "erdos_renyi"
+            ],
+            "title": "Treatment Scheme",
+            "default": "degree_regular"
+          },
+          "baseline_scheme": {
+            "type": "string",
+            "enum": [
+              "degree_regular",
+              "near_regular",
+              "skewed",
+              "erdos_renyi"
+            ],
+            "title": "Baseline Scheme",
+            "default": "skewed"
+          },
+          "skew_cv": {
+            "type": "number",
+            "maximum": 5.0,
+            "title": "Skew Cv",
+            "default": 1.2,
+            "minimum": 0.0,
+            "exclusiveMinimum": true
+          },
+          "include_symmetrization_control": {
+            "type": "boolean",
+            "title": "Include Symmetrization Control",
+            "description": "Also run both conditions with the same matrices symmetrised, to measure whether directedness is carrying the effect. Doubles the runtime.",
+            "default": false
+          },
+          "base_seed": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Base Seed",
+            "default": 0
+          },
+          "evaluation_params": {
+            "$ref": "#/components/schemas/EvaluationParams",
+            "default": {
+              "ridge_alpha": 1e-06,
+              "washout_steps": 100,
+              "train_split": 0.7,
+              "max_lag": 20,
+              "input_scaling": 0.1,
+              "leak_rate": 1.0,
+              "sequence_length": 2000
+            }
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CompareRequest"
+      },
+      "CompareResponse": {
+        "properties": {
+          "configuration": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Configuration"
+          },
+          "per_task": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Per Task"
+          },
+          "multiple_comparison_correction": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Multiple Comparison Correction"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Summary"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "configuration",
+          "per_task",
+          "multiple_comparison_correction",
+          "summary"
+        ],
+        "title": "CompareResponse"
+      },
+      "DiagnoseRequest": {
+        "properties": {
+          "matrix_id": {
+            "title": "Matrix Id",
+            "nullable": true,
+            "type": "string"
+          },
+          "matrix": {
+            "title": "Matrix",
+            "nullable": true,
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "null_models": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "erdos_renyi",
+                "degree_preserving"
+              ]
+            },
+            "type": "array",
+            "title": "Null Models",
+            "default": [
+              "erdos_renyi",
+              "degree_preserving"
+            ]
+          },
+          "iterations": {
+            "type": "integer",
+            "maximum": 500.0,
+            "minimum": 10.0,
+            "title": "Iterations",
+            "default": 100
+          },
+          "seed": {
+            "title": "Seed",
+            "nullable": true,
+            "type": "integer",
+            "maximum": 4294967295.0,
+            "minimum": 0.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DiagnoseRequest"
+      },
+      "DiagnoseResponse": {
+        "properties": {
+          "matrix_id": {
+            "title": "Matrix Id",
+            "nullable": true,
+            "type": "string"
+          },
+          "raw_metrics": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Raw Metrics"
+          },
+          "metric_definitions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Metric Definitions"
+          },
+          "null_analysis": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Null Analysis"
+          },
+          "directedness": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Directedness"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "matrix_id",
+          "raw_metrics",
+          "metric_definitions",
+          "null_analysis",
+          "directedness"
+        ],
+        "title": "DiagnoseResponse"
+      },
+      "EvaluateRequest": {
+        "properties": {
+          "matrix_id": {
+            "title": "Matrix Id",
+            "nullable": true,
+            "type": "string"
+          },
+          "matrix": {
+            "title": "Matrix",
+            "nullable": true,
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "task": {
+            "type": "string",
+            "enum": [
+              "memory_capacity",
+              "delay_parity",
+              "delay_xor",
+              "narma10"
+            ],
+            "title": "Task",
+            "default": "memory_capacity"
+          },
+          "seed": {
+            "title": "Seed",
+            "nullable": true,
+            "type": "integer",
+            "maximum": 4294967295.0,
+            "minimum": 0.0
+          },
+          "evaluation_params": {
+            "$ref": "#/components/schemas/EvaluationParams",
+            "default": {
+              "ridge_alpha": 1e-06,
+              "washout_steps": 100,
+              "train_split": 0.7,
+              "max_lag": 20,
+              "input_scaling": 0.1,
+              "leak_rate": 1.0,
+              "sequence_length": 2000
+            }
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "EvaluateRequest"
+      },
+      "EvaluateResponse": {
+        "properties": {
+          "matrix_id": {
+            "title": "Matrix Id",
+            "nullable": true,
+            "type": "string"
+          },
+          "task": {
+            "type": "string",
+            "title": "Task"
+          },
+          "task_description": {
+            "type": "string",
+            "title": "Task Description"
+          },
+          "aggregate_name": {
+            "type": "string",
+            "title": "Aggregate Name"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "per_target": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Per Target"
+          },
+          "stability": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Stability"
+          },
+          "n_train": {
+            "type": "integer",
+            "title": "N Train"
+          },
+          "n_test": {
+            "type": "integer",
+            "title": "N Test"
+          },
+          "evaluation_params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Evaluation Params"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "matrix_id",
+          "task",
+          "task_description",
+          "aggregate_name",
+          "score",
+          "per_target",
+          "stability",
+          "n_train",
+          "n_test",
+          "evaluation_params"
+        ],
+        "title": "EvaluateResponse"
+      },
+      "EvaluationParams": {
+        "properties": {
+          "ridge_alpha": {
+            "type": "number",
+            "maximum": 1000000.0,
+            "title": "Ridge Alpha",
+            "description": "L2 penalty on the readout",
+            "default": 1e-06,
+            "minimum": 0.0,
+            "exclusiveMinimum": true
+          },
+          "washout_steps": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Washout Steps",
+            "default": 100
+          },
+          "train_split": {
+            "type": "number",
+            "title": "Train Split",
+            "default": 0.7,
+            "minimum": 0.05,
+            "exclusiveMinimum": true,
+            "maximum": 0.99,
+            "exclusiveMaximum": true
+          },
+          "max_lag": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Max Lag",
+            "description": "Number of lags/orders scored per task",
+            "default": 20
+          },
+          "input_scaling": {
+            "type": "number",
+            "maximum": 10.0,
+            "title": "Input Scaling",
+            "default": 0.1,
+            "minimum": 0.0,
+            "exclusiveMinimum": true
+          },
+          "leak_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "title": "Leak Rate",
+            "description": "1.0 = no leaky integration",
+            "default": 1.0,
+            "minimum": 0.0,
+            "exclusiveMinimum": true
+          },
+          "sequence_length": {
+            "type": "integer",
+            "maximum": 20000.0,
+            "minimum": 200.0,
+            "title": "Sequence Length",
+            "default": 2000
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "EvaluationParams"
+      },
+      "GenerateRequest": {
+        "properties": {
+          "node_count": {
+            "type": "integer",
+            "maximum": 2000.0,
+            "minimum": 3.0,
+            "title": "Node Count",
+            "default": 200
+          },
+          "mean_degree": {
+            "type": "number",
+            "title": "Mean Degree",
+            "default": 3.0,
+            "minimum": 0.0,
+            "exclusiveMinimum": true
+          },
+          "wiring_scheme": {
+            "type": "string",
+            "enum": [
+              "degree_regular",
+              "near_regular",
+              "skewed",
+              "erdos_renyi"
+            ],
+            "title": "Wiring Scheme",
+            "default": "degree_regular"
+          },
+          "spectral_radius": {
+            "type": "number",
+            "maximum": 5.0,
+            "title": "Spectral Radius",
+            "default": 0.9,
+            "minimum": 0.0,
+            "exclusiveMinimum": true
+          },
+          "weight_distribution": {
+            "type": "string",
+            "enum": [
+              "uniform",
+              "normal",
+              "bimodal"
+            ],
+            "title": "Weight Distribution",
+            "default": "uniform"
+          },
+          "skew_cv": {
+            "type": "number",
+            "maximum": 5.0,
+            "title": "Skew Cv",
+            "description": "Target degree CV for the skewed scheme",
+            "default": 1.2,
+            "minimum": 0.0,
+            "exclusiveMinimum": true
+          },
+          "seed": {
+            "title": "Seed",
+            "nullable": true,
+            "type": "integer",
+            "maximum": 4294967295.0,
+            "minimum": 0.0
+          },
+          "return_matrix": {
+            "type": "boolean",
+            "title": "Return Matrix",
+            "description": "Inline the full n x n matrix in the response",
+            "default": false
+          },
+          "return_paired_contrast": {
+            "type": "boolean",
+            "title": "Return Paired Contrast",
+            "description": "Also generate the contrasting wiring at the same seed and edge budget, for a like-for-like structural comparison",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "GenerateRequest",
+        "example": {
+          "mean_degree": 3,
+          "node_count": 200,
+          "seed": 42,
+          "spectral_radius": 0.9,
+          "weight_distribution": "uniform",
+          "wiring_scheme": "degree_regular"
+        }
+      },
+      "GenerateResponse": {
+        "properties": {
+          "primary": {
+            "$ref": "#/components/schemas/GeneratedMatrix"
+          },
+          "contrast": {
+            "nullable": true,
+            "$ref": "#/components/schemas/GeneratedMatrix"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "primary"
+        ],
+        "title": "GenerateResponse"
+      },
+      "GeneratedMatrix": {
+        "properties": {
+          "matrix_id": {
+            "type": "string",
+            "title": "Matrix Id"
+          },
+          "node_count": {
+            "type": "integer",
+            "title": "Node Count"
+          },
+          "wiring_scheme": {
+            "type": "string",
+            "title": "Wiring Scheme"
+          },
+          "mean_degree": {
+            "type": "number",
+            "title": "Mean Degree"
+          },
+          "n_edges": {
+            "type": "integer",
+            "title": "N Edges"
+          },
+          "spectral_radius_target": {
+            "type": "number",
+            "title": "Spectral Radius Target"
+          },
+          "spectral_radius_achieved": {
+            "type": "number",
+            "title": "Spectral Radius Achieved"
+          },
+          "weight_distribution": {
+            "type": "string",
+            "title": "Weight Distribution"
+          },
+          "seed": {
+            "title": "Seed",
+            "nullable": true,
+            "type": "integer"
+          },
+          "metrics": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Metrics"
+          },
+          "matrix": {
+            "title": "Matrix",
+            "nullable": true,
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "matrix_id",
+          "node_count",
+          "wiring_scheme",
+          "mean_degree",
+          "n_edges",
+          "spectral_radius_target",
+          "spectral_radius_achieved",
+          "weight_distribution",
+          "seed",
+          "metrics"
+        ],
+        "title": "GeneratedMatrix"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "store": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Store"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "version",
+          "store"
+        ],
+        "title": "HealthResponse"
+      },
+      "OptimizeRequest": {
+        "properties": {
+          "base_nodes": {
+            "type": "integer",
+            "maximum": 2000.0,
+            "minimum": 10.0,
+            "title": "Base Nodes",
+            "default": 200
+          },
+          "mean_degree": {
+            "type": "number",
+            "title": "Mean Degree",
+            "default": 3.0,
+            "minimum": 0.0,
+            "exclusiveMinimum": true
+          },
+          "wiring_scheme": {
+            "type": "string",
+            "enum": [
+              "degree_regular",
+              "near_regular",
+              "skewed",
+              "erdos_renyi"
+            ],
+            "title": "Wiring Scheme",
+            "default": "degree_regular"
+          },
+          "spectral_radius": {
+            "type": "number",
+            "maximum": 5.0,
+            "title": "Spectral Radius",
+            "default": 0.9,
+            "minimum": 0.0,
+            "exclusiveMinimum": true
+          },
+          "weight_distribution": {
+            "type": "string",
+            "enum": [
+              "uniform",
+              "normal",
+              "bimodal"
+            ],
+            "title": "Weight Distribution",
+            "default": "uniform"
+          },
+          "target_metric": {
+            "type": "string",
+            "enum": [
+              "memory_capacity",
+              "delay_parity",
+              "delay_xor",
+              "narma10"
+            ],
+            "title": "Target Metric",
+            "default": "memory_capacity"
+          },
+          "ratios": {
+            "title": "Ratios",
+            "description": "Width ratios to test; defaults to 1.0 down to 0.5 in steps of 0.1",
+            "nullable": true,
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "min_acceptable_ratio": {
+            "type": "number",
+            "maximum": 1.0,
+            "title": "Min Acceptable Ratio",
+            "default": 0.5,
+            "minimum": 0.05,
+            "exclusiveMinimum": true
+          },
+          "non_inferiority_margin_fraction": {
+            "type": "number",
+            "maximum": 0.5,
+            "title": "Non Inferiority Margin Fraction",
+            "description": "A ratio passes if its CI lower bound sits above this fraction of the baseline score, measured downwards",
+            "default": 0.02,
+            "minimum": 0.0,
+            "exclusiveMinimum": true
+          },
+          "selection_seeds": {
+            "type": "integer",
+            "maximum": 32.0,
+            "minimum": 2.0,
+            "title": "Selection Seeds",
+            "default": 8
+          },
+          "confirmation_seeds": {
+            "type": "integer",
+            "maximum": 32.0,
+            "minimum": 2.0,
+            "title": "Confirmation Seeds",
+            "default": 4
+          },
+          "base_seed": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Base Seed",
+            "default": 0
+          },
+          "evaluation_params": {
+            "$ref": "#/components/schemas/EvaluationParams",
+            "default": {
+              "ridge_alpha": 1e-06,
+              "washout_steps": 100,
+              "train_split": 0.7,
+              "max_lag": 20,
+              "input_scaling": 0.1,
+              "leak_rate": 1.0,
+              "sequence_length": 2000
+            }
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "OptimizeRequest"
+      },
+      "OptimizeResponse": {
+        "properties": {
+          "configuration": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Configuration"
+          },
+          "sweep": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Sweep"
+          },
+          "selection": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Selection"
+          },
+          "confirmation": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Confirmation"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Caveats"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "configuration",
+          "sweep",
+          "selection",
+          "confirmation",
+          "caveats"
+        ],
+        "title": "OptimizeResponse"
+      },
+      "ResultRecord": {
+        "properties": {
+          "task": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Task"
+          },
+          "seed": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Seed"
+          },
+          "treatment": {
+            "type": "number",
+            "title": "Treatment"
+          },
+          "baseline": {
+            "type": "number",
+            "title": "Baseline"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "task",
+          "seed",
+          "treatment",
+          "baseline"
+        ],
+        "title": "ResultRecord"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "generation",
+      "description": "Build reservoir matrices with controlled degree structure."
+    },
+    {
+      "name": "analysis",
+      "description": "Structural diagnostics and task performance."
+    },
+    {
+      "name": "experiments",
+      "description": "Comparisons and width searches with held-out confirmation."
+    },
+    {
+      "name": "meta",
+      "description": "Health, version, evidence registry."
+    }
+  ]
+}

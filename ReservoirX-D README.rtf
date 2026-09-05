@@ -1,0 +1,187 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2907
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 # ReservoirX-D\
+\
+Generate directed, degree-regular reservoir weight matrices \'97 and test whether that wiring actually helps on your configuration, instead of taking it on faith.\
+\
+FastAPI service. No database required. Deterministic given a seed. 59 tests.\
+\
+---\
+\
+## Why this is not just a matrix generator\
+\
+The regular-degree connectivity thesis has mixed support across architectures. A sparse CNN showed a real effect. A mixture-of-experts transformer showed none. The reservoir result the service is named after came from an external pipeline that the benchmark capsule never reproduced.\
+\
+So ReservoirX-D ships the experiment rather than the conclusion:\
+\
+- `POST /compare` runs regular-vs-skewed on **your** parameters \'97 paired by seed, matched on edge budget, Holm-corrected across tasks, with an optional symmetrisation control that *measures* whether directedness matters rather than estimating it from a structural proxy.\
+- `POST /optimize` selects a width on one set of seeds and confirms it on a set never used for selection. Connection savings are counted from the generated graphs.\
+- `GET /claims` returns the evidential status of every claim behind the service, including the two marked `external_unverified`.\
+\
+If the effect isn't there on your configuration, the API tells you so.\
+\
+---\
+\
+## Quick start\
+\
+```bash\
+pip install -r requirements-dev.txt\
+uvicorn app.main:app --port 8080\
+# interactive docs at http://localhost:8080/docs\
+```\
+\
+Docker:\
+\
+```bash\
+docker build -t reservoirx-d .\
+docker run --rm -p 8080:8080 reservoirx-d\
+```\
+\
+Tests:\
+\
+```bash\
+make test          # 59 tests, ~3 seconds\
+```\
+\
+---\
+\
+## Endpoints\
+\
+All under `/v1/reservoirx-d`.\
+\
+| Endpoint | Method | What it does |\
+| --- | --- | --- |\
+| `/generate` | POST | Directed matrix with an exact degree sequence and rescaled spectral radius |\
+| `/diagnose` | POST | Structural metrics plus null-model Z-scores and p-values |\
+| `/evaluate` | POST | Score a matrix on a benchmark task with a ridge readout |\
+| `/optimize` | POST | Smallest non-inferior width, with held-out confirmation |\
+| `/compare` | POST | Regular vs skewed, paired and corrected |\
+| `/claims` | GET | Evidence registry with provenance |\
+| `/tasks` | GET | The four benchmark tasks |\
+| `/version` | GET | Service version |\
+| `/health` | GET | Liveness and store state |\
+\
+### Generate\
+\
+```bash\
+curl -X POST http://localhost:8080/v1/reservoirx-d/generate \\\
+  -H 'Content-Type: application/json' \\\
+  -d '\{"node_count": 200, "mean_degree": 3, "wiring_scheme": "degree_regular",\
+       "spectral_radius": 0.9, "seed": 42\}'\
+```\
+\
+Every node gets out-degree and in-degree exactly 3. No self-loops, no parallel edges, reciprocity around `d/(n-1)`.\
+\
+Add `"return_paired_contrast": true` to get the skewed counterpart at the same seed and edge budget.\
+\
+### Compare \'97 the endpoint that matters\
+\
+```bash\
+curl -X POST http://localhost:8080/v1/reservoirx-d/compare \\\
+  -H 'Content-Type: application/json' \\\
+  -d '\{"node_count": 200, "mean_degree": 3, "iterations": 8,\
+       "tasks": ["memory_capacity", "delay_xor"],\
+       "include_symmetrization_control": true\}'\
+```\
+\
+A real run at these settings (about 5 seconds):\
+\
+```\
+memory_capacity  regular=19.975  skewed=19.723  d=+1.63  p=0.0081  p_holm=0.0163\
+delay_xor        regular= 0.055  skewed= 0.056  d=-0.04  p=0.8197  p_holm=0.8197\
+\
+verdict: 1 of 2 tasks show a significant difference after correction. The effect is\
+         task-specific on this configuration and should not be described as general.\
+```\
+\
+That matches the source benchmark's own finding that parity and XOR showed nothing. The symmetrisation control on the same run reported `d 1.63 \uc0\u8594  1.42`, meaning the effect largely *survived* symmetrisation \'97 evidence against the directedness hypothesis at this configuration, which the API says out loud rather than burying.\
+\
+### Optimize\
+\
+```bash\
+curl -X POST http://localhost:8080/v1/reservoirx-d/optimize \\\
+  -H 'Content-Type: application/json' \\\
+  -d '\{"base_nodes": 200, "mean_degree": 3, "target_metric": "memory_capacity",\
+       "min_acceptable_ratio": 0.5, "evaluation_params": \{"max_lag": 120, "sequence_length": 4000\}\}'\
+```\
+\
+Note `max_lag`. Memory capacity is bounded by the number of lags scored, so at `max_lag=20` a 200-node reservoir sits at 19.9 out of 20 and *every* width looks non-inferior. The API detects this and returns `metric_saturated: true` with a caveat telling you the selection carries no information. With a discriminating `max_lag`, the same configuration permits no shrink at all \'97 so the 90% width rule from the blueprint does not transfer to reservoirs.\
+\
+### Diagnose\
+\
+```bash\
+curl -X POST http://localhost:8080/v1/reservoirx-d/diagnose \\\
+  -H 'Content-Type: application/json' \\\
+  -d '\{"matrix_id": "rxd_...", "iterations": 100\}'\
+```\
+\
+Two nulls. `erdos_renyi` fixes only the edge count; `degree_preserving` fixes the exact degree sequence and rewires everything else, so a metric still extreme against it is telling you about wiring beyond degrees.\
+\
+The response also flags accidentally symmetric matrices \'97 the `to_directed()` trap that silently removes the property the whole method depends on.\
+\
+---\
+\
+## Tasks\
+\
+| Task | What it measures |\
+| --- | --- |\
+| `memory_capacity` | Linear short-term memory; sum of per-lag squared correlation, bounded by `max_lag` |\
+| `delay_parity` | Non-linear memory; product of the last *k* binary inputs |\
+| `delay_xor` | Two-tap non-linear memory |\
+| `narma10` | Order-10 non-linear autoregressive moving average; `1 \uc0\u8722  NRMSE` |\
+\
+Run more than one. An API that only exposed memory capacity could only ever confirm the favourable case.\
+\
+---\
+\
+## What changed from the original blueprint\
+\
+**Bugs fixed**\
+\
+- `nx.random_regular_directed_graph` does not exist in NetworkX (checked against 3.6.1). The obvious substitute, `random_regular_graph(...).to_directed()`, returns a symmetric matrix and destroys the directedness the method depends on. Replaced with configuration-model stub pairing plus directed double-edge swaps, which repair self-loops and parallel edges while preserving the degree sequence exactly.\
+- `mean_degree: 2.7` with `wiring_scheme: "degree_regular"` is a contradiction \'97 a degree-regular digraph has one integer degree for every node. Now rejected with a pointer to `near_regular`, which realises a fractional mean by splitting nodes between degree 2 and 3 while keeping CV near zero.\
+- Rejection sampling on divergence removed. With a `tanh` activation the state is analytically bounded in [\uc0\u8722 1, 1], so it cannot diverge; the guard could never fire for the stated reason. Worse, it responded by *resampling the input*, which silently changes the task so the returned states no longer correspond to the caller's signal. The real failure modes \'97 saturation and collapse \'97 are now measured and reported in `stability`, not worked around.\
+- `drive_reservoir` referenced an undefined `n` and multiplied by a no-op `A @ zeros`.\
+- Reciprocity divided a halved mutual-pair count by the total edge count, giving half the conventional value. Now the standard Newman definition.\
+- `np.random.seed()` set global state, which is a reproducibility and thread-safety hazard under async FastAPI. Everything uses `np.random.default_rng(seed)`; a test asserts no global-state leak.\
+- The Henrici formula in the blueprint was a normality-departure ratio, not the Henrici index. Both are now returned under separate, documented names.\
+- `matrix_rank` saturates at *n* for essentially every random matrix. `effective_rank` (entropy of the singular-value spectrum) is reported alongside it.\
+- Spectral radius was computed twice per matrix. Rescaling is linear, so once is enough.\
+\
+**Claims corrected**\
+\
+- The 90% width rule and the 16.2% connection saving came from a CIFAR-10 sparse-CNN sweep. They are not reservoir properties and no longer appear as constants anywhere. `/optimize` measures savings from actual edge counts.\
+- The `/compare` and `/optimize` example responses no longer ship the expected answer pre-filled. An endpoint that advertises its result in advance is a confirmation ritual, not a test.\
+- `symmetrization_risk` is gone. Estimating a performance drop from Henrici departure implies a calibration that does not exist \'97 the evidence is one external experiment. Use `include_symmetrization_control` to measure it instead.\
+- The CNN result was non-inferiority at 90% width, not a win: the confidence interval spans zero. `/claims` records it as `partially_supported` with that gap stated.\
+- The MoE arm found one hit across four uncorrected density tests and failed its fresh-seed check. It is recorded as `not_supported`, and Holm correction is applied wherever this API runs a sweep.\
+\
+**Added**\
+\
+- Held-out confirmation in `/optimize`, mirroring the benchmark's own protocol.\
+- Ceiling detection, so a saturated metric cannot produce a bogus shrink recommendation.\
+- Three tasks beyond memory capacity, including the two the source benchmark found no effect on.\
+- `/claims` as a machine-readable evidence registry.\
+- Redis store backend, request caps, request IDs, structured errors.\
+\
+---\
+\
+## Deployment\
+\
+Environment variables in `.env.example`. The defaults are single-worker: the in-memory matrix store is per-process, so `matrix_id` values issued by one worker are invisible to the others. Before scaling out, set `RXD_STORE_BACKEND=redis`.\
+\
+Every endpoint is synchronous CPU work \'97 handlers are declared `def` so FastAPI runs them in the threadpool rather than blocking the event loop. A `/compare` over 8 seeds and 4 tasks is 64 reservoir simulations. Caps in `config.py` keep one request from occupying a worker for minutes; for larger jobs, put them behind a queue rather than a request.\
+\
+```bash\
+python scripts/export_openapi.py   # openapi.json for API-hub upload\
+```\
+\
+## License\
+\
+MIT.\
+}

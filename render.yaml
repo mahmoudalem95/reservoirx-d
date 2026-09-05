@@ -1,0 +1,21 @@
+# Render blueprint. Point render.com at this repo and it configures itself.
+#
+# Free tier notes:
+#   * 512 MB RAM. Enough for the default caps; a /compare at node_count=2000
+#     would not be, so RXD_MAX_NODE_COUNT is lowered here.
+#   * The instance sleeps after 15 minutes idle and takes ~30s to wake. The
+#     Python client's 300s default timeout absorbs that, but a monitoring test
+#     with a short timeout will see the cold start as a failure.
+services:
+  - type: web
+    name: reservoirx-d
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: RXD_STORE_BACKEND
+        value: memory
+      - key: RXD_MAX_NODE_COUNT
+        value: "800"
+      - key: RXD_PUBLIC_URL
+        sync: false   # set this to the render.com URL after the first deploy

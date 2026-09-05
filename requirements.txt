@@ -1,0 +1,14 @@
+# Runtime dependencies
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30,<1.0
+pydantic>=2.7,<3.0
+numpy>=1.26,<3.0
+scipy>=1.11,<2.0
+
+# NOTE: networkx and scikit-learn are deliberately NOT dependencies.
+#   networkx    - has no directed analogue of random_regular_graph, and the
+#                 obvious substitute (.to_directed()) produces a symmetric
+#                 matrix. app/core/graphs.py builds directed degree-regular
+#                 graphs itself.
+#   scikit-learn - the ridge readout is a closed-form solve in ~10 lines
+#                 (app/core/evaluation.py). Not worth a 30 MB dependency.

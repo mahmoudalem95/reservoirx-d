@@ -1,0 +1,1007 @@
+components:
+  schemas:
+    CompareRequest:
+      additionalProperties: false
+      properties:
+        base_seed:
+          default: 0
+          maximum: 2147483647.0
+          minimum: 0.0
+          title: Base Seed
+          type: integer
+        baseline_scheme:
+          default: skewed
+          enum:
+          - degree_regular
+          - near_regular
+          - skewed
+          - erdos_renyi
+          title: Baseline Scheme
+          type: string
+        evaluation_params:
+          $ref: '#/components/schemas/EvaluationParams'
+          default:
+            input_scaling: 0.1
+            leak_rate: 1.0
+            max_lag: 20
+            ridge_alpha: 1.0e-06
+            sequence_length: 2000
+            train_split: 0.7
+            washout_steps: 100
+        include_symmetrization_control:
+          default: false
+          description: Also run both conditions with the same matrices symmetrised,
+            to measure whether directedness is carrying the effect. Doubles the runtime.
+          title: Include Symmetrization Control
+          type: boolean
+        iterations:
+          default: 8
+          maximum: 32.0
+          minimum: 3.0
+          title: Iterations
+          type: integer
+        mean_degree:
+          default: 3.0
+          exclusiveMinimum: 0.0
+          title: Mean Degree
+          type: number
+        node_count:
+          default: 200
+          maximum: 2000.0
+          minimum: 10.0
+          title: Node Count
+          type: integer
+        skew_cv:
+          default: 1.2
+          exclusiveMinimum: 0.0
+          maximum: 5.0
+          title: Skew Cv
+          type: number
+        spectral_radius:
+          default: 0.9
+          exclusiveMinimum: 0.0
+          maximum: 5.0
+          title: Spectral Radius
+          type: number
+        tasks:
+          default:
+          - memory_capacity
+          items:
+            enum:
+            - memory_capacity
+            - delay_parity
+            - delay_xor
+            - narma10
+            type: string
+          title: Tasks
+          type: array
+        treatment_scheme:
+          default: degree_regular
+          enum:
+          - degree_regular
+          - near_regular
+          - skewed
+          - erdos_renyi
+          title: Treatment Scheme
+          type: string
+        weight_distribution:
+          default: uniform
+          enum:
+          - uniform
+          - normal
+          - bimodal
+          title: Weight Distribution
+          type: string
+      title: CompareRequest
+      type: object
+    CompareResponse:
+      properties:
+        configuration:
+          additionalProperties: true
+          title: Configuration
+          type: object
+        multiple_comparison_correction:
+          additionalProperties: true
+          title: Multiple Comparison Correction
+          type: object
+        per_task:
+          additionalProperties: true
+          title: Per Task
+          type: object
+        summary:
+          additionalProperties: true
+          title: Summary
+          type: object
+        warnings:
+          default: []
+          items:
+            type: string
+          title: Warnings
+          type: array
+      required:
+      - configuration
+      - per_task
+      - multiple_comparison_correction
+      - summary
+      title: CompareResponse
+      type: object
+    DiagnoseRequest:
+      additionalProperties: false
+      properties:
+        iterations:
+          default: 100
+          maximum: 500.0
+          minimum: 10.0
+          title: Iterations
+          type: integer
+        matrix:
+          anyOf:
+          - items:
+              items:
+                type: number
+              type: array
+            type: array
+          - type: 'null'
+          title: Matrix
+        matrix_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Matrix Id
+        null_models:
+          default:
+          - erdos_renyi
+          - degree_preserving
+          items:
+            enum:
+            - erdos_renyi
+            - degree_preserving
+            type: string
+          title: Null Models
+          type: array
+        seed:
+          anyOf:
+          - maximum: 4294967295.0
+            minimum: 0.0
+            type: integer
+          - type: 'null'
+          title: Seed
+      title: DiagnoseRequest
+      type: object
+    DiagnoseResponse:
+      properties:
+        directedness:
+          additionalProperties: true
+          title: Directedness
+          type: object
+        matrix_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Matrix Id
+        metric_definitions:
+          additionalProperties:
+            type: string
+          title: Metric Definitions
+          type: object
+        notes:
+          default: []
+          items:
+            type: string
+          title: Notes
+          type: array
+        null_analysis:
+          additionalProperties: true
+          title: Null Analysis
+          type: object
+        raw_metrics:
+          additionalProperties:
+            type: number
+          title: Raw Metrics
+          type: object
+      required:
+      - matrix_id
+      - raw_metrics
+      - metric_definitions
+      - null_analysis
+      - directedness
+      title: DiagnoseResponse
+      type: object
+    EvaluateRequest:
+      additionalProperties: false
+      properties:
+        evaluation_params:
+          $ref: '#/components/schemas/EvaluationParams'
+          default:
+            input_scaling: 0.1
+            leak_rate: 1.0
+            max_lag: 20
+            ridge_alpha: 1.0e-06
+            sequence_length: 2000
+            train_split: 0.7
+            washout_steps: 100
+        matrix:
+          anyOf:
+          - items:
+              items:
+                type: number
+              type: array
+            type: array
+          - type: 'null'
+          title: Matrix
+        matrix_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Matrix Id
+        seed:
+          anyOf:
+          - maximum: 4294967295.0
+            minimum: 0.0
+            type: integer
+          - type: 'null'
+          title: Seed
+        task:
+          default: memory_capacity
+          enum:
+          - memory_capacity
+          - delay_parity
+          - delay_xor
+          - narma10
+          title: Task
+          type: string
+      title: EvaluateRequest
+      type: object
+    EvaluateResponse:
+      properties:
+        aggregate_name:
+          title: Aggregate Name
+          type: string
+        evaluation_params:
+          additionalProperties: true
+          title: Evaluation Params
+          type: object
+        matrix_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Matrix Id
+        n_test:
+          title: N Test
+          type: integer
+        n_train:
+          title: N Train
+          type: integer
+        per_target:
+          additionalProperties:
+            type: number
+          title: Per Target
+          type: object
+        score:
+          title: Score
+          type: number
+        stability:
+          additionalProperties:
+            type: number
+          title: Stability
+          type: object
+        task:
+          title: Task
+          type: string
+        task_description:
+          title: Task Description
+          type: string
+        warnings:
+          default: []
+          items:
+            type: string
+          title: Warnings
+          type: array
+      required:
+      - matrix_id
+      - task
+      - task_description
+      - aggregate_name
+      - score
+      - per_target
+      - stability
+      - n_train
+      - n_test
+      - evaluation_params
+      title: EvaluateResponse
+      type: object
+    EvaluationParams:
+      additionalProperties: false
+      properties:
+        input_scaling:
+          default: 0.1
+          exclusiveMinimum: 0.0
+          maximum: 10.0
+          title: Input Scaling
+          type: number
+        leak_rate:
+          default: 1.0
+          description: 1.0 = no leaky integration
+          exclusiveMinimum: 0.0
+          maximum: 1.0
+          title: Leak Rate
+          type: number
+        max_lag:
+          default: 20
+          description: Number of lags/orders scored per task
+          maximum: 200.0
+          minimum: 1.0
+          title: Max Lag
+          type: integer
+        ridge_alpha:
+          default: 1.0e-06
+          description: L2 penalty on the readout
+          exclusiveMinimum: 0.0
+          maximum: 1000000.0
+          title: Ridge Alpha
+          type: number
+        sequence_length:
+          default: 2000
+          maximum: 20000.0
+          minimum: 200.0
+          title: Sequence Length
+          type: integer
+        train_split:
+          default: 0.7
+          exclusiveMaximum: 0.99
+          exclusiveMinimum: 0.05
+          title: Train Split
+          type: number
+        washout_steps:
+          default: 100
+          maximum: 10000.0
+          minimum: 0.0
+          title: Washout Steps
+          type: integer
+      title: EvaluationParams
+      type: object
+    GenerateRequest:
+      additionalProperties: false
+      example:
+        mean_degree: 3
+        node_count: 200
+        seed: 42
+        spectral_radius: 0.9
+        weight_distribution: uniform
+        wiring_scheme: degree_regular
+      properties:
+        mean_degree:
+          default: 3.0
+          exclusiveMinimum: 0.0
+          title: Mean Degree
+          type: number
+        node_count:
+          default: 200
+          maximum: 2000.0
+          minimum: 3.0
+          title: Node Count
+          type: integer
+        return_matrix:
+          default: false
+          description: Inline the full n x n matrix in the response
+          title: Return Matrix
+          type: boolean
+        return_paired_contrast:
+          default: false
+          description: Also generate the contrasting wiring at the same seed and edge
+            budget, for a like-for-like structural comparison
+          title: Return Paired Contrast
+          type: boolean
+        seed:
+          anyOf:
+          - maximum: 4294967295.0
+            minimum: 0.0
+            type: integer
+          - type: 'null'
+          title: Seed
+        skew_cv:
+          default: 1.2
+          description: Target degree CV for the skewed scheme
+          exclusiveMinimum: 0.0
+          maximum: 5.0
+          title: Skew Cv
+          type: number
+        spectral_radius:
+          default: 0.9
+          exclusiveMinimum: 0.0
+          maximum: 5.0
+          title: Spectral Radius
+          type: number
+        weight_distribution:
+          default: uniform
+          enum:
+          - uniform
+          - normal
+          - bimodal
+          title: Weight Distribution
+          type: string
+        wiring_scheme:
+          default: degree_regular
+          enum:
+          - degree_regular
+          - near_regular
+          - skewed
+          - erdos_renyi
+          title: Wiring Scheme
+          type: string
+      title: GenerateRequest
+      type: object
+    GenerateResponse:
+      properties:
+        contrast:
+          anyOf:
+          - $ref: '#/components/schemas/GeneratedMatrix'
+          - type: 'null'
+        notes:
+          default: []
+          items:
+            type: string
+          title: Notes
+          type: array
+        primary:
+          $ref: '#/components/schemas/GeneratedMatrix'
+      required:
+      - primary
+      title: GenerateResponse
+      type: object
+    GeneratedMatrix:
+      properties:
+        matrix:
+          anyOf:
+          - items:
+              items:
+                type: number
+              type: array
+            type: array
+          - type: 'null'
+          title: Matrix
+        matrix_id:
+          title: Matrix Id
+          type: string
+        mean_degree:
+          title: Mean Degree
+          type: number
+        metrics:
+          additionalProperties:
+            type: number
+          title: Metrics
+          type: object
+        n_edges:
+          title: N Edges
+          type: integer
+        node_count:
+          title: Node Count
+          type: integer
+        seed:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Seed
+        spectral_radius_achieved:
+          title: Spectral Radius Achieved
+          type: number
+        spectral_radius_target:
+          title: Spectral Radius Target
+          type: number
+        weight_distribution:
+          title: Weight Distribution
+          type: string
+        wiring_scheme:
+          title: Wiring Scheme
+          type: string
+      required:
+      - matrix_id
+      - node_count
+      - wiring_scheme
+      - mean_degree
+      - n_edges
+      - spectral_radius_target
+      - spectral_radius_achieved
+      - weight_distribution
+      - seed
+      - metrics
+      title: GeneratedMatrix
+      type: object
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          title: Detail
+          type: array
+      title: HTTPValidationError
+      type: object
+    HealthResponse:
+      properties:
+        status:
+          title: Status
+          type: string
+        store:
+          additionalProperties: true
+          title: Store
+          type: object
+        version:
+          title: Version
+          type: string
+      required:
+      - status
+      - version
+      - store
+      title: HealthResponse
+      type: object
+    OptimizeRequest:
+      additionalProperties: false
+      properties:
+        base_nodes:
+          default: 200
+          maximum: 2000.0
+          minimum: 10.0
+          title: Base Nodes
+          type: integer
+        base_seed:
+          default: 0
+          maximum: 2147483647.0
+          minimum: 0.0
+          title: Base Seed
+          type: integer
+        confirmation_seeds:
+          default: 4
+          maximum: 32.0
+          minimum: 2.0
+          title: Confirmation Seeds
+          type: integer
+        evaluation_params:
+          $ref: '#/components/schemas/EvaluationParams'
+          default:
+            input_scaling: 0.1
+            leak_rate: 1.0
+            max_lag: 20
+            ridge_alpha: 1.0e-06
+            sequence_length: 2000
+            train_split: 0.7
+            washout_steps: 100
+        mean_degree:
+          default: 3.0
+          exclusiveMinimum: 0.0
+          title: Mean Degree
+          type: number
+        min_acceptable_ratio:
+          default: 0.5
+          exclusiveMinimum: 0.05
+          maximum: 1.0
+          title: Min Acceptable Ratio
+          type: number
+        non_inferiority_margin_fraction:
+          default: 0.02
+          description: A ratio passes if its CI lower bound sits above this fraction
+            of the baseline score, measured downwards
+          exclusiveMinimum: 0.0
+          maximum: 0.5
+          title: Non Inferiority Margin Fraction
+          type: number
+        ratios:
+          anyOf:
+          - items:
+              type: number
+            type: array
+          - type: 'null'
+          description: Width ratios to test; defaults to 1.0 down to 0.5 in steps
+            of 0.1
+          title: Ratios
+        selection_seeds:
+          default: 8
+          maximum: 32.0
+          minimum: 2.0
+          title: Selection Seeds
+          type: integer
+        spectral_radius:
+          default: 0.9
+          exclusiveMinimum: 0.0
+          maximum: 5.0
+          title: Spectral Radius
+          type: number
+        target_metric:
+          default: memory_capacity
+          enum:
+          - memory_capacity
+          - delay_parity
+          - delay_xor
+          - narma10
+          title: Target Metric
+          type: string
+        weight_distribution:
+          default: uniform
+          enum:
+          - uniform
+          - normal
+          - bimodal
+          title: Weight Distribution
+          type: string
+        wiring_scheme:
+          default: degree_regular
+          enum:
+          - degree_regular
+          - near_regular
+          - skewed
+          - erdos_renyi
+          title: Wiring Scheme
+          type: string
+      title: OptimizeRequest
+      type: object
+    OptimizeResponse:
+      properties:
+        caveats:
+          items:
+            type: string
+          title: Caveats
+          type: array
+        configuration:
+          additionalProperties: true
+          title: Configuration
+          type: object
+        confirmation:
+          additionalProperties: true
+          title: Confirmation
+          type: object
+        selection:
+          additionalProperties: true
+          title: Selection
+          type: object
+        sweep:
+          items:
+            additionalProperties: true
+            type: object
+          title: Sweep
+          type: array
+        warnings:
+          default: []
+          items:
+            type: string
+          title: Warnings
+          type: array
+      required:
+      - configuration
+      - sweep
+      - selection
+      - confirmation
+      - caveats
+      title: OptimizeResponse
+      type: object
+    ValidationError:
+      properties:
+        ctx:
+          title: Context
+          type: object
+        input:
+          title: Input
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          title: Location
+          type: array
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+      type: object
+info:
+  contact:
+    name: ReservoirX-D
+    url: https://github.com/
+  description: "\nGenerate directed, degree-regular reservoir weight matrices, then\
+    \ **test** whether\nthat wiring actually helps on your configuration.\n\n### What\
+    \ this service does differently\n\nMost of the published support for regular-degree\
+    \ connectivity is architecture-specific,\nand some of it was never independently\
+    \ reproduced. Rather than shipping those results as\nproduct claims, ReservoirX-D\
+    \ exposes the experiment:\n\n* `POST /compare` runs the regular-vs-skewed comparison\
+    \ on your parameters, paired by\n  seed, matched on edge budget, Holm-corrected\
+    \ across tasks.\n* `POST /optimize` selects a width on one set of seeds and confirms\
+    \ it on another, and\n  reports connection savings it actually counted.\n* `GET\
+    \ /claims` returns the provenance and evidential status of every claim behind\
+    \ the\n  service, including the two that come from an external pipeline that was\
+    \ not reproduced.\n\n### Construction\n\nNetworkX has no directed analogue of\
+    \ `random_regular_graph`, and the obvious substitute\n(`random_regular_graph(...).to_directed()`)\
+    \ yields a symmetric matrix, destroying exactly\nthe directedness this service\
+    \ depends on. Graphs here are built by configuration-model\nstub pairing followed\
+    \ by directed double-edge swaps, which repairs self-loops and parallel\nedges\
+    \ while preserving the degree sequence exactly.\n\n### Limits\n\nEvery endpoint\
+    \ is synchronous CPU work. `/compare` over 8 seeds and 4 tasks is 64\nreservoir\
+    \ simulations. Size your requests accordingly, or put them behind a queue.\n"
+  license:
+    name: MIT
+  title: ReservoirX-D
+  version: 1.0.0
+openapi: 3.1.0
+paths:
+  /:
+    get:
+      operationId: index__get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                title: Response Index  Get
+                type: object
+          description: Successful Response
+      summary: Service index
+      tags:
+      - meta
+  /health:
+    get:
+      operationId: health_health_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+          description: Successful Response
+      summary: Liveness and store state
+      tags:
+      - meta
+  /v1/reservoirx-d/claims:
+    get:
+      description: 'The provenance of the results ReservoirX-D is built on, with status
+        codes.
+
+
+        Served as an endpoint rather than buried in a README because two of the
+
+        headline claims come from an external pipeline that was never reproduced,
+
+        and anyone building on this API should be able to see that programmatically.'
+      operationId: claims_v1_reservoirx_d_claims_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                title: Response Claims V1 Reservoirx D Claims Get
+                type: object
+          description: Successful Response
+      summary: Evidence behind every claim this service makes
+      tags:
+      - meta
+  /v1/reservoirx-d/compare:
+    post:
+      description: 'Paired regular-vs-skewed comparison on your configuration.
+
+
+        Conditions share seeds, edge budgets are reported, multiple tasks are
+
+        Holm-corrected, and the symmetrisation control -- when enabled -- measures
+
+        the directedness hypothesis rather than assuming it.
+
+
+        This endpoint is the point of the service. The wiring effect is not treated
+
+        as a given; it is the thing being tested.'
+      operationId: compare_v1_reservoirx_d_compare_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompareRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompareResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Test regular against skewed
+      tags:
+      - experiments
+  /v1/reservoirx-d/diagnose:
+    post:
+      description: 'Structural metrics plus null-model Z-scores and empirical p-values.
+
+
+        Note what is deliberately absent: there is no `symmetrization_risk` field.
+
+        Estimating a performance drop from a structural proxy such as Henrici
+
+        departure would imply a calibration that does not exist -- the evidence for
+
+        the symmetrisation collapse is a single external experiment. Measure it
+
+        instead with `include_symmetrization_control` on /compare.'
+      operationId: diagnose_v1_reservoirx_d_diagnose_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiagnoseRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagnoseResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Structural diagnostics
+      tags:
+      - analysis
+  /v1/reservoirx-d/evaluate:
+    post:
+      description: 'Drive the reservoir and fit a ridge readout on held-out data.
+
+
+        States are bounded by the tanh activation, so divergence is not a failure
+
+        mode and there is no rejection sampling. The real risks -- saturation and
+
+        collapse -- are reported in `stability` and flagged in `warnings` rather
+
+        than silently worked around.'
+      operationId: evaluate_v1_reservoirx_d_evaluate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluateRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluateResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Evaluate a reservoir on a task
+      tags:
+      - analysis
+  /v1/reservoirx-d/generate:
+    post:
+      description: 'Generate a directed reservoir with an exact degree sequence and
+        a rescaled
+
+        spectral radius.
+
+
+        `degree_regular` gives every node identical in- and out-degree. `near_regular`
+
+        accepts a fractional mean degree. `skewed` and `erdos_renyi` are the contrast
+
+        conditions, matched on edge budget.'
+      operationId: generate_v1_reservoirx_d_generate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Generate a reservoir matrix
+      tags:
+      - generation
+  /v1/reservoirx-d/optimize:
+    post:
+      description: 'Search for the smallest width that stays non-inferior to full
+        width.
+
+
+        Selection runs on one set of seeds and confirmation on another, so the
+
+        reported result is not scored on the data that chose it. Connection savings
+
+        are counted from the generated graphs; no fixed shrink ratio is assumed.'
+      operationId: optimize_v1_reservoirx_d_optimize_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OptimizeRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptimizeResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Find the smallest viable width
+      tags:
+      - experiments
+  /v1/reservoirx-d/tasks:
+    get:
+      operationId: tasks_v1_reservoirx_d_tasks_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                title: Response Tasks V1 Reservoirx D Tasks Get
+                type: object
+          description: Successful Response
+      summary: Available benchmark tasks
+      tags:
+      - meta
+  /v1/reservoirx-d/version:
+    get:
+      operationId: version_v1_reservoirx_d_version_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                title: Response Version V1 Reservoirx D Version Get
+                type: object
+          description: Successful Response
+      summary: Service version
+      tags:
+      - meta
+servers:
+- description: Configured deployment (RXD_PUBLIC_URL)
+  url: https://reservoirx-d.fly.dev
+- description: Local development
+  url: http://localhost:8080
+tags:
+- description: Build reservoir matrices with controlled degree structure.
+  name: generation
+- description: Structural diagnostics and task performance.
+  name: analysis
+- description: Comparisons and width searches with held-out confirmation.
+  name: experiments
+- description: Health, version, evidence registry.
+  name: meta
+

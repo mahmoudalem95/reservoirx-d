@@ -1,0 +1,33 @@
+app = "reservoirx-d"
+primary_region = "ams"   # keep whatever region you were assigned
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Public URL for OpenAPI spec and CORS
+  RXD_PUBLIC_URL = "https://reservoirx-d.fly.dev"
+  # Use memory store for now (single instance)
+  RXD_STORE_BACKEND = "memory"
+
+[http_service]
+  internal_port = 8080       # confirm this matches your Dockerfile
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[checks]
+  [checks.health]
+    grace_period = "5s"
+    interval = "15s"
+    method = "GET"
+    path = "/health"
+    port = 8080
+    timeout = "3s"
+    type = "http"
