@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 
-API_VERSION = "1.4.1"
+API_VERSION = "1.4.2"
 API_PREFIX = "/v1/reservoirx-d"
 
 

@@ -92,7 +92,7 @@ def run_optimization(
     """Search for the smallest width ratio that is non-inferior to full width."""
     params = {**DEFAULT_EVAL_PARAMS, **(eval_params or {})}
     if ratios is None:
-        ratios = [1.0, 0.8, 0.6]  # demo-sized; pass your own for a full sweep
+        ratios = [1.0, 0.7]  # smoke-test sized; pass your own for a real sweep
     ratios = sorted({round(float(r), 4) for r in ratios if r >= min_acceptable_ratio}, reverse=True)
     if not ratios or abs(ratios[0] - 1.0) > 1e-9:
         ratios = [1.0] + [r for r in ratios if r < 1.0]

@@ -219,6 +219,19 @@ don't mix seeds from the two in one paired test.
 
 ## Changelog
 
+### 1.4.2
+
+Bodyless defaults shrunk again, to a smoke-test size that fits a 0.1-CPU host behind a 180s
+gateway. At 1.4.1 settings a default `/optimize` returned 200 in 115 seconds — a working call,
+but with 25 seconds of margin on a shared CPU, which would fail intermittently.
+
+- `/optimize` and `/compare` default to `node_count`/`base_nodes` 80, 3 seeds, 2 ratios,
+  `sequence_length` 1000. Projected ~24s and ~15s on the free tier.
+- **Nothing statistical can be concluded from a run at these defaults.** Three seeds put the
+  permutation floor at 0.25. They exist so the endpoint returns a well-formed response whose
+  shape you can read. Real runs need explicit parameters: 200 nodes, 8–16 seeds, the full ratio
+  sweep, and `max_lag` high enough to clear the ceiling.
+
 ### 1.4.1
 
 - `/optimize` and `/compare` defaults are now demo-sized so a bodyless call finishes inside an

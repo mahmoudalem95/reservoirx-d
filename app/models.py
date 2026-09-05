@@ -40,7 +40,7 @@ class EvaluationParams(StrictModel):
     max_lag: int = Field(20, ge=1, le=200, description="Number of lags/orders scored per task")
     input_scaling: float = Field(0.1, gt=0, le=10.0)
     leak_rate: float = Field(1.0, gt=0, le=1.0, description="1.0 = no leaky integration")
-    sequence_length: int = Field(2000, ge=200, le=settings.max_sequence_length)
+    sequence_length: int = Field(1000, ge=200, le=settings.max_sequence_length)
 
     @model_validator(mode="after")
     def _washout_fits(self) -> "EvaluationParams":
@@ -221,7 +221,7 @@ class EvaluateResponse(BaseModel):
 
 
 class OptimizeRequest(StrictModel):
-    base_nodes: int = Field(200, ge=10, le=settings.max_node_count)
+    base_nodes: int = Field(80, ge=10, le=settings.max_node_count)
     mean_degree: float = Field(3.0, gt=0)
     wiring_scheme: WiringScheme = "degree_regular"
     spectral_radius: float = Field(0.9, gt=0, le=5.0)
@@ -236,11 +236,14 @@ class OptimizeRequest(StrictModel):
         0.02, gt=0, le=0.5, description="A ratio passes if its CI lower bound sits above this "
         "fraction of the baseline score, measured downwards"
     )
-    # Defaults are demo-sized, not research-sized. A bodyless POST has to finish
-    # inside an API gateway timeout (RapidAPI cuts at 180s) on a shared-CPU host,
-    # and the full protocol is ~56 simulations. For real work raise these: 8+ and
-    # 4+ seeds, and see the note on max_lag in evaluation_params.
-    selection_seeds: int = Field(4, ge=2, le=settings.max_iterations)
+    # Defaults are a smoke test, not an experiment. A bodyless POST has to finish
+    # inside an API gateway timeout (RapidAPI cuts at 180s) on a 0.1-CPU host,
+    # where work taking 0.65s locally took 115s. Nothing statistical can be
+    # concluded from a run at these settings -- they exist so the endpoint
+    # returns a well-formed response you can read the shape of. For real work:
+    # base_nodes=200, selection_seeds=8, confirmation_seeds=4, the full ratio
+    # sweep, and max_lag high enough to avoid the ceiling.
+    selection_seeds: int = Field(3, ge=2, le=settings.max_iterations)
     confirmation_seeds: int = Field(2, ge=2, le=settings.max_iterations)
     base_seed: int = Field(0, ge=0, le=2**31 - 1)
     evaluation_params: EvaluationParams = EvaluationParams()
@@ -298,15 +301,15 @@ class OptimizeResponse(BaseModel):
 
 
 class CompareRequest(StrictModel):
-    node_count: int = Field(200, ge=10, le=settings.max_node_count)
+    node_count: int = Field(80, ge=10, le=settings.max_node_count)
     mean_degree: float = Field(3.0, gt=0)
     spectral_radius: float = Field(0.9, gt=0, le=5.0)
     weight_distribution: WeightDistribution = "uniform"
-    # 4 is a demo default, not a statistical one: with n pairs the smallest
-    # attainable permutation p-value is ~2/2^n, so 4 seeds bottom out at 0.125
-    # and NOTHING can reach significance. Use 8 to detect an effect at all and
-    # 16 for resolution below the floor. The response warns when you are there.
-    iterations: int = Field(4, ge=3, le=settings.max_iterations)
+    # 3 is a smoke-test default, not a statistical one: with n pairs the smallest
+    # attainable permutation p-value is ~2/2^n, so 3 seeds bottom out at 0.25 and
+    # NOTHING can reach significance. Use 8 to detect an effect at all and 16 for
+    # resolution below the floor. The response warns when you are at the floor.
+    iterations: int = Field(3, ge=3, le=settings.max_iterations)
     tasks: list[TaskName] = ["memory_capacity"]
     treatment_scheme: WiringScheme = "degree_regular"
     baseline_scheme: WiringScheme = "skewed"
